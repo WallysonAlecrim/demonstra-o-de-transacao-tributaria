@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parcelamento PGFN: situação atual e possibilidades de transação</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+:root{--bg:#F2F4F7;--sf:#fff;--ink:#16202E;--mu:#5B6675;--ln:#D9DEE5;--c0:#2B3A55;--c3:#0F7B6C;--c4:#2F6FDB;--c5:#B36B00;--c6:#8E3B8E;--wb:#FFF4D6;--wl:#E0A800;--wt:#5A4300;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F141B;--sf:#171E28;--ink:#E8ECF2;--mu:#98A3B3;--ln:#2A3442;--c0:#9DB1D6;--c3:#3FC4AF;--c4:#6C9CF5;--c5:#E8A33D;--c6:#C77BC7;--wb:#2E2711;--wl:#B08A1A;--wt:#F2DDA0}}
+:root[data-theme="dark"]{--bg:#0F141B;--sf:#171E28;--ink:#E8ECF2;--mu:#98A3B3;--ln:#2A3442;--c0:#9DB1D6;--c3:#3FC4AF;--c4:#6C9CF5;--c5:#E8A33D;--c6:#C77BC7;--wb:#2E2711;--wl:#B08A1A;--wt:#F2DDA0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 56px}
+h1,h2,.num{font-family:"IBM Plex Serif",Georgia,"Times New Roman",serif}
+h1{font-size:clamp(24px,4vw,36px);margin:4px 0 6px;line-height:1.15}
+h2{font-size:22px;margin:0 0 4px}
+.sub{color:var(--mu);margin:0}
+header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;padding:8px 0 20px;border-bottom:2px solid var(--ink)}
+.tag{display:inline-block;font-size:13px;color:var(--mu)}
+button{font:inherit;color:inherit;cursor:pointer}
+.theme{border:1px solid var(--ln);background:var(--sf);border-radius:6px;padding:6px 12px}
+:focus-visible{outline:3px solid var(--c4);outline-offset:2px}
+section{margin-top:40px}
+.band{padding:10px 14px;border-left:6px solid var(--c0);background:var(--sf);margin-bottom:16px;border-radius:0 6px 6px 0}
+.band.opt{border-left-color:var(--c4)}
+.grid{display:grid;gap:12px}
+.k{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.box{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:14px 16px}
+.box .l{color:var(--mu);font-size:13px}
+.box .v{font-size:24px;margin-top:2px}
+.box .n{font-size:12.5px;color:var(--mu);margin-top:4px}
+.der{font-size:11.5px;border:1px solid var(--ln);border-radius:4px;padding:0 5px;color:var(--mu);margin-left:6px;white-space:nowrap}
+.stack{display:flex;height:22px;border-radius:4px;overflow:hidden;margin:10px 0 6px}
+.stack i{display:block;height:100%}
+.leg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--mu)}
+.leg b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.tw{overflow-x:auto;border:1px solid var(--ln);border-radius:8px;background:var(--sf)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--ln);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--mu);font-size:13px;background:var(--bg)}
+tfoot td{font-weight:600;border-bottom:0}
+.opts{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--sf);border:1px solid var(--ln);border-top:6px solid var(--cc);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-size:17px}
+.card .big{font-size:28px;font-family:"IBM Plex Serif",Georgia,serif}
+.card dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:14px}
+.card dt{color:var(--mu)}.card dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.pill{font-size:12.5px;padding:2px 8px;border-radius:99px;background:var(--bg);border:1px solid var(--ln);align-self:flex-start}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.seg{display:inline-flex;border:1px solid var(--ln);border-radius:6px;overflow:hidden;background:var(--sf)}
+.seg button{border:0;background:transparent;padding:7px 12px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chk{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border:1px solid var(--ln);border-radius:6px;background:var(--sf);font-size:14px}
+.chk i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.chart{background:var(--sf);border:1px solid var(--ln);border-radius:8px;padding:10px}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--mu);font:12px "IBM Plex Sans",system-ui,sans-serif}
+.alert{background:var(--wb);border:1px solid var(--wl);color:var(--wt);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.alert b.b{display:inline-block;font-size:12px;letter-spacing:.04em;background:var(--wl);color:#fff;border-radius:4px;padding:1px 7px;margin-right:8px}
+.alert p{margin:6px 0 0;font-size:14px}
+ul.cl{margin:0;padding-left:20px}ul.cl li{margin:5px 0}
+.pos{color:var(--c3);font-weight:600}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--ln);font-size:13px;color:var(--mu)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <span class="tag">Negociação PGFN nº 14272267 · Débito 10 4 25 056567-53 · Data-base 02/10/2026</span>
+    <h1>Parcelamento atual e possibilidades de transação</h1>
+    <p class="sub">Quadro comparativo para análise conjunta. Os valores seguem os documentos da PGFN; cálculos próprios aparecem identificados como "derivado".</p>
+  </div>
+  <button class="theme" id="theme" type="button">Alternar tema</button>
+</header>
+
+<section id="atual">
+  <div class="band"><h2>Situação atual</h2><p class="sub">Parcelamento convencional deferido e consolidado, em andamento.</p></div>
+  <div class="grid k" id="kpis"></div>
+  <div class="box" style="margin-top:12px">
+    <div class="l" style="color:var(--mu);font-size:13px">Composição do valor já pago</div>
+    <div class="stack" id="stack" role="img" aria-label="Composição dos pagamentos realizados"></div>
+    <div class="leg" id="stackLeg"></div>
+  </div>
+  <h3 style="margin:22px 0 8px">Pagamentos realizados</h3>
+  <div class="tw"><table id="pay"></table></div>
+</section>
+
+<section id="opcoes">
+  <div class="band opt"><h2>Possibilidades de transação</h2><p class="sub">Quatro simulações da PGFN sobre a mesma base de R$ 94.658,72, com adesão até 29/01/2027. Todas exigem 5 parcelas de entrada.</p></div>
+  <div class="grid opts" id="cards"></div>
+</section>
+
+<section id="comparar">
+  <div class="band" style="border-left-color:var(--ink)"><h2>Comparativo</h2><p class="sub">Escolha a base de comparação e quais cenários exibir.</p></div>
+  <div class="ctl" role="group" aria-label="Base de comparação">
+    <span class="sub" style="align-self:center">Comparar com:</span>
+    <div class="seg" id="base"></div>
+  </div>
+  <div class="tw"><table id="cmp"></table></div>
+  <p class="sub" style="font-size:13px;margin-top:8px">A diferença nominal é a base escolhida menos o total a pagar da simulação. Não considera correção futura, nem a forma como a PGFN trataria os pagamentos já feitos.</p>
+
+  <h3 style="margin:26px 0 4px">Desembolso ao longo do tempo</h3>
+  <div class="ctl">
+    <div class="seg" id="mode"></div>
+    <div id="tog" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  </div>
+  <div class="chart"><svg id="chart" viewBox="0 0 760 340" role="img" aria-label="Gráfico de desembolso por mês"></svg></div>
+  <p class="sub" style="font-size:13px;margin-top:8px">Os meses são contados a partir do primeiro pagamento de cada cenário. A linha do parcelamento atual é uma projeção derivada: saldo devedor com juros dividido pelas parcelas restantes. Não é valor oficial.</p>
+</section>
+
+<section id="conferir">
+  <div class="band" style="border-left-color:var(--wl)"><h2>Pontos a conferir</h2><p class="sub">Apontamentos da leitura dos documentos. Nenhum valor foi alterado para fazer contas fecharem.</p></div>
+  <div id="alerts"></div>
+  <h3 style="margin:22px 0 8px">Antes de qualquer alteração do parcelamento existente</h3>
+  <ul class="cl">
+    <li>Confirmar se a adesão à transação substitui, cancela ou convive com o parcelamento atual, e como ficam os R$ 20.904,29 já pagos.</li>
+    <li>Confirmar se a base da simulação (R$ 94.658,72) corresponde a todo o débito hoje parcelado.</li>
+    <li>Verificar a capacidade de pagamento da empresa nos meses de maior parcela, não só no total.</li>
+    <li>Registrar o prazo de adesão (29/01/2027) e as consequências de inadimplência em cada modalidade.</li>
+    <li>Lembrar que as prestações são atualizadas na data do pagamento, conforme a legislação vigente.</li>
+  </ul>
+</section>
+
+<section id="docs">
+  <h2 style="font-size:18px">Documentos analisados</h2>
+  <ul class="cl" id="docList"></ul>
+  <footer>Dados extraídos das consultas e simulações disponibilizadas para análise, com data-base de 02/10/2026. Este painel é uma representação visual e comparativa dos documentos oficiais e não os substitui. Não indica qual cenário contratar.</footer>
+</section>
+</div>
+
+<script>
+const sources={current:"situação hoje.pdf",option3:"opção 3.pdf",option4:"opção 4.pdf",option5:"opção 5.pdf",option6:"opção 6.pdf"};
+const BRL=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);
+const sum=(a,k)=>Math.round(a.reduce((s,x)=>s+x[k],0)*100)/100;
+const $=id=>document.getElementById(id);
+
+const current={
+  situacao:"Deferida e consolidada",modalidade:"0005 – Parcelamento sem garantia, Simples Nacional",
+  adesao:"24/11/2025",parcelas:60,
+  consolidado:107905.88,principal:58747.58,multa:11749.23,juros:27599.46,encargos:9809.61,
+  saldoSem:88123.09,saldoCom:98926.98,
+  pagamentos:[
+   ["27/11/2025","7172532814000903",979.09,195.79,460.09,163.46,1798.43],
+   ["30/12/2025","7172534436381950",988.89,197.74,464.70,165.09,1816.42],
+   ["30/01/2026","7172602348463707",1000.83,200.12,470.30,167.11,1838.36],
+   ["23/02/2026","7172605037971845",1012.19,202.40,475.64,168.99,1859.22],
+   ["31/03/2026","7172607813982210",1021.98,204.36,480.25,170.62,1877.21],
+   ["30/04/2026","7172610746181966",1033.84,206.72,485.81,172.60,1898.97],
+   ["26/05/2026","7172614591652955",1044.49,208.86,490.84,174.38,1918.57],
+   ["30/06/2026","7172617436227116",1054.97,210.95,495.76,176.13,1937.81],
+   ["31/08/2026","7172623705285793",1077.89,215.56,506.50,179.95,1979.90],
+   ["31/08/2026","7172621797992690",1077.89,215.56,506.50,179.95,1979.90],
+   ["30/09/2026","7172626600740533",1088.55,217.68,511.54,181.73,1999.50]]
+};
+const baseSim=94658.72, entrada={q:5,v:946.58};
+const mk=(id,nome,cor,red,prazo,desc,total,q,v)=>({id,nome,cor,reducao:red,prazo,desconto:desc,total,entrada:entrada,basica:{q,v}});
+const scenarios={
+ current,
+ option3:mk("option3","Opção 3","var(--c3)",30,60,26977.72,67681.00,55,1144.50),
+ option4:mk("option4","Opção 4","var(--c4)",40,35,35970.30,58688.42,30,1798.51),
+ option5:mk("option5","Opção 5","var(--c5)",45,17,40466.59,54192.13,12,4121.59),
+ option6:mk("option6","Opção 6","var(--c6)",50,12,44962.87,49695.85,7,6423.27)
+};
+const opts=["option3","option4","option5","option6"];
+const pago=sum(current.pagamentos.map(p=>({t:p[6]})),"t");
+const pagos=current.pagamentos.length, restam=current.parcelas-pagos;
+const projMensal=Math.round(current.saldoCom/restam*100)/100;
+const pct=(a,b)=>(a/b*100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+
+/* KPIs */
+const kp=[
+ ["Dívida consolidada",BRL(current.consolidado),"Principal, multa, juros e encargos em 24/11/2025"],
+ ["Já pago",BRL(pago),pct(pago,current.consolidado)+" do consolidado <span class='der'>soma derivada</span>"],
+ ["Parcelas pagas",pagos+" de "+current.parcelas,"Entradas de pagamento listadas no documento"],
+ ["Parcelas restantes",restam,"Prazo de "+current.parcelas+" parcelas <span class='der'>derivado</span>"],
+ ["Saldo devedor com juros",BRL(current.saldoCom),"Informado pela PGFN"],
+ ["Saldo devedor sem juros",BRL(current.saldoSem),"Informado pela PGFN"],
+ ["Última parcela paga",BRL(1999.50),"Em 30/09/2026; parcelas variam com a atualização"],
+ ["Situação",current.situacao,"Desconto aplicado na consolidação: 0,00%"]
+];
+$("kpis").innerHTML=kp.map(k=>`<div class="box"><div class="l">${k[0]}</div><div class="v num">${k[1]}</div><div class="n">${k[2]}</div></div>`).join("");
+
+/* composição do pago */
+const comp=[["Principal",5,"#2B3A55"],["Multa",3,"#B36B00"],["Juros",4,"#2F6FDB"],["Encargos",5,"#8E3B8E"]];
+const tot=comp.map(c=>({n:c[0],v:sum(current.pagamentos.map(p=>({t:p[c[1]-1+ (c[0]=="Principal"?-1:-1)]})),"t"),c:c[2]}));
+const idx={Principal:2,Multa:3,Juros:4,Encargos:5};
+const parts=comp.map(c=>({n:c[0],c:c[2],v:sum(current.pagamentos.map(p=>({t:p[idx[c[0]]]})),"t")}));
+$("stack").innerHTML=parts.map(p=>`<i style="width:${p.v/pago*100}%;background:${p.c}" title="${p.n}: ${BRL(p.v)}"></i>`).join("");
+$("stackLeg").innerHTML=parts.map(p=>`<span><b style="background:${p.c}"></b>${p.n}: ${BRL(p.v)}</span>`).join("");
+
+/* pagamentos */
+$("pay").innerHTML=`<thead><tr><th>#</th><th>Data</th><th>Documento</th><th>Principal</th><th>Multa</th><th>Juros</th><th>Encargos</th><th>Total</th></tr></thead><tbody>`+
+ current.pagamentos.map((p,i)=>`<tr><td>${i+1}</td><td>${p[0]}</td><td>${p[1]}</td>${p.slice(2).map(x=>`<td>${BRL(x)}</td>`).join("")}</tr>`).join("")+
+ `</tbody><tfoot><tr><td colspan="3">Total pago</td>${["Principal","Multa","Juros","Encargos"].map(n=>`<td>${BRL(parts.find(p=>p.n==n).v)}</td>`).join("")}<td>${BRL(pago)}</td></tr></tfoot>`;
+
+/* cards */
+$("cards").innerHTML=opts.map(id=>{const s=scenarios[id];return `<article class="card" style="--cc:${s.cor}">
+ <h3>${s.nome}</h3><span class="pill">Redução de até ${s.reducao}% · até ${s.prazo} meses</span>
+ <div><div class="l" style="color:var(--mu);font-size:13px">Total a pagar</div><div class="big">${BRL(s.total)}</div></div>
+ <dl><dt>Desconto</dt><dd class="pos">${BRL(s.desconto)} (${pct(s.desconto,baseSim)})</dd>
+ <dt>Entrada</dt><dd>${s.entrada.q}× ${BRL(s.entrada.v)}</dd>
+ <dt>Depois da entrada</dt><dd>${s.basica.q}× ${BRL(s.basica.v)}</dd>
+ <dt>Prazo total</dt><dd>${s.entrada.q+s.basica.q} meses</dd>
+ <dt>Maior desembolso mensal</dt><dd>${BRL(s.basica.v)}</dd></dl></article>`}).join("");
+
+/* comparativo */
+const bases={com:["Saldo com juros",current.saldoCom],sem:["Saldo sem juros",current.saldoSem],sim:["Total sem desconto da simulação",baseSim]};
+let bk="com";
+function renderBase(){
+ $("base").innerHTML=Object.entries(bases).map(([k,b])=>`<button type="button" data-k="${k}" aria-pressed="${k==bk}">${b[0]} (${BRL(b[1])})</button>`).join("");
+ $("base").querySelectorAll("button").forEach(b=>b.onclick=()=>{bk=b.dataset.k;renderBase();renderCmp()});
+}
+function renderCmp(){
+ const b=bases[bk][1];
+ const head=`<thead><tr><th>Cenário</th><th>Total</th><th>Desconto</th><th>Entrada</th><th>Parcelas seguintes</th><th>Prazo</th><th>Diferença nominal</th></tr></thead>`;
+ const cur=`<tr><td><b style="color:var(--c0)">Parcelamento atual</b></td><td>${BRL(current.saldoCom)}<div class="n" style="font-size:11.5px;color:var(--mu)">saldo restante</div></td><td>0,00%</td><td>sem entrada</td><td>${restam}× ~${BRL(projMensal)} <span class="der">derivado</span></td><td>${restam} meses</td><td>referência</td></tr>`;
+ const rows=opts.map(id=>{const s=scenarios[id];return `<tr><td><b style="color:${s.cor}">${s.nome}</b></td><td>${BRL(s.total)}</td><td>${pct(s.desconto,baseSim)}</td><td>${s.entrada.q}× ${BRL(s.entrada.v)}</td><td>${s.basica.q}× ${BRL(s.basica.v)}</td><td>${s.entrada.q+s.basica.q} meses</td><td class="pos">${BRL(b-s.total)}</td></tr>`}).join("");
+ $("cmp").innerHTML=head+"<tbody>"+cur+rows+"</tbody>";
+}
+renderBase();renderCmp();
+
+/* gráfico */
+const series={current:{n:"Parcelamento atual (projeção)",c:"var(--c0)",m:Array(restam).fill(projMensal),dash:true}};
+opts.forEach(id=>{const s=scenarios[id];series[id]={n:s.nome,c:s.cor,m:[...Array(5).fill(s.entrada.v),...Array(s.basica.q).fill(s.basica.v)]}});
+let mode="m";const on=new Set(Object.keys(series));
+$("mode").innerHTML=`<button type="button" data-m="m">Por mês</button><button type="button" data-m="a">Acumulado</button>`;
+$("mode").querySelectorAll("button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;draw()});
+$("tog").innerHTML=Object.entries(series).map(([k,s])=>`<label class="chk"><input type="checkbox" checked data-k="${k}"><i style="background:${s.c}"></i>${s.n}</label>`).join("");
+$("tog").querySelectorAll("input").forEach(i=>i.onchange=()=>{i.checked?on.add(i.dataset.k):on.delete(i.dataset.k);draw()});
+function draw(){
+ $("mode").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m==mode));
+ const W=760,H=340,L=64,R=14,T=14,B=34,N=60;
+ const data=Object.entries(series).filter(([k])=>on.has(k)).map(([k,s])=>{let c=0;return{...s,y:s.m.map(v=>mode=="a"?(c+=v):v)}});
+ const max=Math.max(1,...data.flatMap(d=>d.y))*1.06;
+ const X=i=>L+(i)*(W-L-R)/N, Y=v=>H-B-v/max*(H-T-B);
+ let g="";
+ for(let i=0;i<=5;i++){const v=max*i/5;g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--ln)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end">${Math.round(v).toLocaleString("pt-BR")}</text>`}
+ for(let m=0;m<=N;m+=12)g+=`<text x="${X(m)}" y="${H-12}" text-anchor="middle">${m==0?"mês 1":"mês "+m}</text>`;
+ data.forEach(d=>{
+  const pts=d.y.map((v,i)=>`${X(i+1).toFixed(1)},${Y(v).toFixed(1)}`);
+  const path=mode=="m"?`M${X(0.5).toFixed(1)},${Y(d.y[0]).toFixed(1)} `+d.y.map((v,i)=>`L${X(i+1).toFixed(1)},${Y(v).toFixed(1)}`).join(" "):`M${X(0)},${Y(0)} L`+pts.join(" L");
+  g+=`<path d="${path}" fill="none" stroke="${d.c}" stroke-width="2.5" ${d.dash?'stroke-dasharray="6 4"':""} stroke-linejoin="round"/>`;
+ });
+ $("chart").innerHTML=g;
+}
+draw();
+
+/* documentos */
+const lab={current:"Situação atual do parcelamento",option3:"Simulação de transação",option4:"Simulação de transação",option5:"Simulação de transação",option6:"Simulação de transação"};
+$("docList").innerHTML=Object.keys(sources).map(k=>`<li>${lab[k]} – ${sources[k]}</li>`).join("");
+
+/* alertas */
+const al=[
+ ["O PDF “situação hoje” indica 6 páginas (1/6 e 2/6 visíveis); só duas foram analisadas.","Parcelas restantes, vencimentos futuros e demonstrativos adicionais podem constar nas demais páginas. Conferir o arquivo completo."],
+ ["Pagamentos 9 e 10 têm a mesma data (31/08/2026) e o mesmo valor, e não há pagamento listado em julho/2026.","Confirmar se são duas competências quitadas no mesmo dia ou duplicidade. Isso muda a contagem de "+pagos+" parcelas pagas e as "+restam+" restantes."],
+ ["Saldo devedor informado não bate com “consolidado menos pagos”.","Consolidado "+BRL(current.consolidado)+" menos "+BRL(pago)+" pagos dá "+BRL(current.consolidado-pago)+" (derivado). A PGFN informa "+BRL(current.saldoSem)+" sem juros e "+BRL(current.saldoCom)+" com juros. Valores da PGFN foram mantidos."],
+ ["A base das simulações ("+BRL(baseSim)+") é diferente do saldo atual.","Confirmar o que compõe esse total e se ele abrange todo o débito hoje parcelado (mesma negociação 14272267 e débito 10 4 25 056567-53)."],
+ ["Arredondamentos entre entrada, parcelas e total a pagar.","Entrada + parcelas dá "+BRL(4732.90+55*1144.50)+" (opção 3), "+BRL(4732.90+30*1798.51)+" (opção 4), "+BRL(4732.90+12*4121.59)+" (opção 5) e "+BRL(4732.90+7*6423.27)+" (opção 6), contra "+BRL(67681)+", "+BRL(58688.42)+", "+BRL(54192.13)+" e "+BRL(49695.85)+" informados. Os totais da PGFN foram preservados."],
+ ["As simulações exibem o texto “[object Object]” e o campo de prestações “1”.","São falhas de exibição da página de origem. Os valores lidos nos quadros de pagamento foram conferidos entre si."]
+];
+$("alerts").innerHTML=al.map(a=>`<div class="alert"><b class="b">DADO A CONFERIR</b>${a[0]}<p>${a[1]}</p></div>`).join("");
+
+/* tema */
+$("theme").onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme=="dark":matchMedia("(prefers-color-scheme:dark)").matches;r.dataset.theme=dark?"light":"dark"};
+</script>
+</body>
+</html>
